@@ -1,0 +1,10 @@
+Bin/*
+enc_temp_folder/
+*.user
+*.sdf
+*.opensdf
+*.suo
+*.ptx
+.vs/*
+.vscode/
+*.o

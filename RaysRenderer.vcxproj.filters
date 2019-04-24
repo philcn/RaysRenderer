@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="RaysRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="RaysRenderer.h" />
+    <ClInclude Include="TAA.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Data">
+      <UniqueIdentifier>{9bfa944a-fa4e-458e-abb2-e7d76857491a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\Forward.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\Deferred.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\GBuffer.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\RaytracedReflection.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\RaytracedShadows.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\ForwardRaytrace.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\GBufferUtils.slang">
+      <Filter>Data</Filter>
+    </None>
+  </ItemGroup>
+</Project>
