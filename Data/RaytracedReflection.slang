@@ -40,12 +40,26 @@ void RayGen()
 
 bool TraceShadowRay(uint lightIndex, float3 origin)
 {
-    float3 direction = gLights[lightIndex].posW - origin;
+    LightData light = gLights[lightIndex];
+    float3 direction;
+    float maxT;
+
+    if (light.type == LightPoint)
+    {
+        direction = light.posW - origin;
+        maxT = length(direction);
+    }
+    else if (light.type == LightDirectional)
+    {
+        direction = -light.dirW;
+        maxT = 1000.0;
+    }
+
     RayDesc ray;
     ray.Origin = origin;
     ray.Direction = normalize(direction);
     ray.TMin = 0.001;
-    ray.TMax = max(0.01, length(direction));
+    ray.TMax = max(0.01, maxT);
 
     ShadowRayData rayData;
     rayData.hit = true;
@@ -101,7 +115,7 @@ void PrimaryCHS(inout ReflectionRayData hitData, in BuiltInTriangleIntersectionA
     [unroll]
     for (int i = 0; i < gLightsCount; i++)
     {
-        if (TraceShadowRay(i, posW) != false)
+        if (TraceShadowRay(i, posW) == false)
         {
             color += evalMaterial(sd, gLights[i], 1.0).color.rgb;
         }

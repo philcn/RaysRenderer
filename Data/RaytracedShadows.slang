@@ -40,10 +40,11 @@ void RayGen()
     float2 randVal = float2(rand_next(randSeed), rand_next(randSeed));
 
     float3 posW = gGBuf0.Load(int3(launchIndex.xy, 0)).rgb;
+
+    LightData light = gLights[0];
     float3 direction;
     float maxT;
 
-    LightData light = gLights[0];
     if (light.type == LightPoint)
     {
         direction = light.posW - posW;
