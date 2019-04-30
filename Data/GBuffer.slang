@@ -18,7 +18,7 @@ struct GBuffer
 };
 
 // A simple utility to convert a float to a 2-component octohedral representation packed into one uint
-uint dirToOct(float3 normal)
+uint DirToOct(float3 normal)
 {
 	float2 p = normal.xy * (1.0 / dot(abs(normal), 1.0.xxx));
 	float2 e = normal.z > 0.0 ? p : (1.0 - abs(p.yx)) * (step(0.0,p)*2.0-(float2)(1.0)); 
@@ -32,7 +32,7 @@ GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
 	// The 'linearZ' buffer
 	float linearZ    = vOut.posH.z * vOut.posH.w;
 	float maxChangeZ = max(abs(ddx(linearZ)), abs(ddy(linearZ)));
-	float objNorm    = asfloat(dirToOct(normalize(vOut.normalW))); // world normal instead of object normal
+	float objNorm    = asfloat(DirToOct(normalize(vOut.normalW))); // world normal instead of object normal
 	float4 svgfLinearZOut = float4(linearZ, maxChangeZ, vOut.prevPosH.z, objNorm);
 
 	// The 'motion vector' buffer
@@ -48,7 +48,7 @@ GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
     out.linearZ = svgfLinearZOut;
 
 	// A compacted buffer containing discretizied normal, depth, depth derivative
-	out.compactNormDepth = float4(asfloat(dirToOct(sd.N)), linearZ, maxChangeZ, 0.0f);
+	out.compactNormDepth = float4(asfloat(DirToOct(sd.N)), linearZ, maxChangeZ, 0.0f);
 
     return out;
 }

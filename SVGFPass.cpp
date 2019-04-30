@@ -13,7 +13,7 @@ SVGFPass::SVGFPass(uint32_t width, uint32_t height)
     Fbo::Desc reprojFboDesc;
     reprojFboDesc.setColorTarget(0, ResourceFormat::RGBA16Float); // Input signal, variance
     reprojFboDesc.setColorTarget(1, ResourceFormat::RG16Float); // 1st and 2nd Moments
-    reprojFboDesc.setColorTarget(2, ResourceFormat::R8Uint); // History length
+    reprojFboDesc.setColorTarget(2, ResourceFormat::R8Unorm); // History length
 
     mCurrReprojFbo = FboHelper::create2D(width, height, reprojFboDesc);
     mPrevReprojFbo = FboHelper::create2D(width, height, reprojFboDesc);

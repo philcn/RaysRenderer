@@ -22,8 +22,8 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mFrameCount = 0;
     mEnableRaytracedShadows = true;
     mEnableRaytracedReflection = true;
-    mEnableDenoiseShadows = false;
-    mEnableDenoiseReflection = false;
+    mEnableDenoiseShadows = true;
+    mEnableDenoiseReflection = true;
     mRenderMode = RenderMode::Hybrid;
 
     uint32_t width = sample->getCurrentFbo()->getWidth();
@@ -347,17 +347,20 @@ void RaysRenderer::RunTAA(RenderContext* renderContext, const Fbo::SharedPtr& ta
 
 void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
 {
-    if (gui->addCheckBox("Raytraced Reflection", mEnableRaytracedReflection))
+    if (mRenderMode == RenderMode::Hybrid)
     {
-        ConfigureDeferredProgram();
-    }
-    if (gui->addCheckBox("Raytraced Shadows", mEnableRaytracedShadows))
-    {
-        ConfigureDeferredProgram();
-    }
+        if (gui->addCheckBox("Raytraced Reflection", mEnableRaytracedReflection))
+        {
+            ConfigureDeferredProgram();
+        }
+        if (gui->addCheckBox("Raytraced Shadows", mEnableRaytracedShadows))
+        {
+            ConfigureDeferredProgram();
+        }
 
-    gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
-    gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
+        gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
+        gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
+    }
 
     #define EDIT_MATERIAL(name, material)																		  \
         if (gui->beginGroup(name))																				  \

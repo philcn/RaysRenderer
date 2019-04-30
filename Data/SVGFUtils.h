@@ -1,14 +1,16 @@
 #ifndef SVGF_UTILS_H
 #define SVGF_UTILS_H
 
-int2 getTextureDims(Texture2D tex, uint mip)
+#include "HostDeviceSharedCode.h"
+
+int2 GetTextureDims(Texture2D tex, uint mip)
 {
     uint w, h;
     tex.GetDimensions(w, h);
     return int2(w, h);
 }
 
-float3 octToDir(uint octo)
+float3 OctToDir(uint octo)
 {
     float2 e = float2(f16tof32(octo & 0xFFFF), f16tof32((octo >> 16) & 0xFFFF));
     float3 v = float3(e, 1.0 - abs(e.x) - abs(e.y));
@@ -17,24 +19,11 @@ float3 octToDir(uint octo)
     return normalize(v);
 }
 
-uint dirToOct(float3 normal)
+uint DirToOct(float3 normal)
 {
     float2 p = normal.xy * (1.0 / dot(abs(normal), 1.0.xxx));
     float2 e = normal.z > 0.0 ? p : (1.0 - abs(p.yx)) * (step(0.0, p) * 2.0 - (float2)(1.0));
     return (asuint(f32tof16(e.y)) << 16) + (asuint(f32tof16(e.x)));
-}
-
-float normalDistanceCos(float3 n1, float3 n2, float power)
-{
-    //return pow(max(0.0, dot(n1, n2)), 128.0);
-    //return pow( saturate(dot(n1,n2)), power);
-    return 1.0f;
-}
-
-float normalDistanceTan(float3 a, float3 b)
-{
-    const float d = max(1e-8, dot(a, b));
-    return sqrt(max(0.0, 1.0 - d * d)) / d;
 }
 
 struct SVGFSample
@@ -53,7 +42,7 @@ SVGFSample FetchSignalSample(Texture2D signalTexture, Texture2D ndTexture, int2 
     SVGFSample s;
     s.signal = signal.rgb;
     s.variance = signal.a;
-    s.normal = normalize(octToDir(asuint(nd.x)));
+    s.normal = normalize(OctToDir(asuint(nd.x)));
     s.linearZ = nd.y;
     s.zDerivative = nd.z;
     s.luminance = luminance(s.signal);
@@ -61,9 +50,14 @@ SVGFSample FetchSignalSample(Texture2D signalTexture, Texture2D ndTexture, int2 
     return s;
 }
 
+float NormalDistanceCos(float3 n1, float3 n2, float power)
+{
+    return pow(saturate(dot(n1, n2)), power);
+}
+
 float ComputeWeight(SVGFSample sampleCenter, SVGFSample sampleP, float phiDepth, float phiNormal, float phiColor)
 {
-    const float wNormal = normalDistanceCos(sampleCenter.normal, sampleP.normal, phiNormal);
+    const float wNormal = NormalDistanceCos(sampleCenter.normal, sampleP.normal, phiNormal);
     const float wZ = (phiDepth == 0) ? 0.0f : abs(sampleCenter.linearZ - sampleP.linearZ) / phiDepth;
     const float wLdirect = abs(sampleCenter.luminance - sampleP.luminance) / phiColor;
 

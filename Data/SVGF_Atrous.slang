@@ -49,7 +49,7 @@ float ComputeVarianceCenter(int2 ipos, Texture2D signalTexture)
         {
             int2 p = ipos + int2(xx, yy);
             float k = kernel[abs(xx)][abs(yy)];
-            sum += signalTexture.Load(int3(p, 0)).a * k;
+            sum += signalTexture[p].a * k;
         }
     }
 
@@ -59,7 +59,7 @@ float ComputeVarianceCenter(int2 ipos, Texture2D signalTexture)
 PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
 {
     const int2 ipos = int2(pos.xy);
-    const int2 screenSize = getTextureDims(gInputSignal, 0);
+    const int2 screenSize = GetTextureDims(gInputSignal, 0);
 
     SVGFSample sampleCenter = FetchSignalSample(gInputSignal, gCompactNormDepth, ipos);
 
