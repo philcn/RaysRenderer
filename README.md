@@ -12,10 +12,14 @@ Hybrid raytracing and filtering playground.
 
 ## Future Work
 
-### Rendering
+### Lighting
 
 * Shadowed analytical area light (Heitz 18)
 * Emissive mesh light
+
+### Global Illumination
+
+* GTAO GI approximation (Jimenez 17)
 * 1 bounce GGX diffuse global illumination
 * Surfel global illumination (EA SEED 18)
 * Raytraced irradiance fields (McGuire 19)
