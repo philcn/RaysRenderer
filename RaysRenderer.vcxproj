@@ -12,9 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RaysRenderer.cpp" />
+    <ClCompile Include="SVGFPass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Data\SVGFUtils.h" />
     <ClInclude Include="RaysRenderer.h" />
+    <ClInclude Include="SVGFPass.h" />
     <ClInclude Include="TAA.h" />
   </ItemGroup>
   <ItemGroup>
@@ -30,6 +33,9 @@
     <None Include="Data\GBufferUtils.slang" />
     <None Include="Data\RaytracedReflection.slang" />
     <None Include="Data\RaytracedShadows.slang" />
+    <None Include="Data\SVGF_Atrous.slang" />
+    <None Include="Data\SVGF_Reprojection.slang" />
+    <None Include="Data\SVGF_VarianceEstimation.slang" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{605856E4-34D4-40DF-B859-EEA3A7D52A7B}</ProjectGuid>

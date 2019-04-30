@@ -2,10 +2,15 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="RaysRenderer.cpp" />
+    <ClCompile Include="SVGFPass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RaysRenderer.h" />
     <ClInclude Include="TAA.h" />
+    <ClInclude Include="SVGFPass.h" />
+    <ClInclude Include="Data\SVGFUtils.h">
+      <Filter>Data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Data">
@@ -32,6 +37,15 @@
       <Filter>Data</Filter>
     </None>
     <None Include="Data\GBufferUtils.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\SVGF_Reprojection.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\SVGF_VarianceEstimation.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\SVGF_Atrous.slang">
       <Filter>Data</Filter>
     </None>
   </ItemGroup>

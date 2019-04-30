@@ -35,7 +35,9 @@ void RayGen()
     ShadingData sd = LoadGBuffer(launchIndex.xy);
 
     float3 reflectColor = TraceReflectionRay(sd, 0, randSeed);
-    gOutput[launchIndex.xy] = float4(reflectColor, 1.0);
+    bool colorsNan = any(isnan(reflectColor));
+
+    gOutput[launchIndex.xy] = float4(colorsNan ? float3(0.0) : reflectColor, 1.0);
 }
 
 bool TraceShadowRay(uint lightIndex, float3 origin)

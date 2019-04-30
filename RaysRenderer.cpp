@@ -11,7 +11,9 @@ namespace
         WorldPosition = 0,
         NormalRoughness,
         Albedo,
-        MotionVector
+        MotionVector,
+        SVGF_LinearZ,
+        SVGF_CompactNormDepth
     };
 }
 
@@ -20,6 +22,8 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mFrameCount = 0;
     mEnableRaytracedShadows = true;
     mEnableRaytracedReflection = true;
+    mEnableDenoiseShadows = false;
+    mEnableDenoiseReflection = false;
     mRenderMode = RenderMode::Hybrid;
 
     uint32_t width = sample->getCurrentFbo()->getWidth();
@@ -33,6 +37,7 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     SetupScene();
     SetupRendering(width, height);
     SetupRaytracing(width, height);
+    SetupDenoising(width, height);
     SetupTAA(width, height);
 
     ConfigureDeferredProgram();
@@ -86,7 +91,9 @@ void RaysRenderer::SetupRendering(uint32_t width, uint32_t height)
     fboDesc.setColorTarget(GBuffer::WorldPosition, ResourceFormat::RGBA32Float);
     fboDesc.setColorTarget(GBuffer::NormalRoughness, ResourceFormat::RGBA32Float);
     fboDesc.setColorTarget(GBuffer::Albedo, ResourceFormat::RGBA8Unorm);
-    fboDesc.setColorTarget(GBuffer::MotionVector, ResourceFormat::RG16Float);
+    fboDesc.setColorTarget(GBuffer::MotionVector, ResourceFormat::RGBA16Float);
+    fboDesc.setColorTarget(GBuffer::SVGF_LinearZ, ResourceFormat::RGBA16Float);
+    fboDesc.setColorTarget(GBuffer::SVGF_CompactNormDepth, ResourceFormat::RGBA16Float);
     fboDesc.setDepthStencilTarget(ResourceFormat::D32Float);
     mGBuffer = FboHelper::create2D(width, height, fboDesc);
 
@@ -134,6 +141,12 @@ void RaysRenderer::SetupRaytracing(uint32_t width, uint32_t height)
     mRtShadowState->setMaxTraceRecursionDepth(1); // no recursion
 
     mShadowTexture = Texture::create2D(width, height, ResourceFormat::R8Unorm, 1, 1, nullptr, bindFlags);
+}
+
+void RaysRenderer::SetupDenoising(uint32_t width, uint32_t height)
+{
+    mShadowFilter = std::make_shared<SVGFPass>(width, height);
+    mReflectionFilter = std::make_shared<SVGFPass>(width, height);
 }
 
 void RaysRenderer::SetupTAA(uint32_t width, uint32_t height)
@@ -204,8 +217,30 @@ void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderC
 
         if (mRenderMode == RenderMode::Hybrid)
         {
-            if (mEnableRaytracedShadows) RaytraceShadows(renderContext);
-            if (mEnableRaytracedReflection) RaytraceReflection(renderContext);
+            const auto& motionTex = mGBuffer->getColorTexture(GBuffer::MotionVector);
+            const auto& linearZTex = mGBuffer->getColorTexture(GBuffer::SVGF_LinearZ);
+            const auto& compactTex = mGBuffer->getColorTexture(GBuffer::SVGF_CompactNormDepth);
+
+            if (mEnableRaytracedShadows)
+            {
+                RaytraceShadows(renderContext);
+
+                if (mEnableDenoiseShadows)
+                {
+                    PROFILE("DenoiseShadows");
+                    mDenoisedShadowTexture = mShadowFilter->Execute(renderContext, mShadowTexture, motionTex, linearZTex, compactTex);
+                }
+            }
+            if (mEnableRaytracedReflection)
+            {
+                RaytraceReflection(renderContext);
+
+                if (mEnableDenoiseReflection)
+                {
+                    PROFILE("DenoiseReflection");
+                    mDenoisedReflectionTexture = mReflectionFilter->Execute(renderContext, mReflectionTexture, motionTex, linearZTex, compactTex);
+                }
+            }
         }
 
         DeferredPass(renderContext, targetFbo);
@@ -283,8 +318,8 @@ void RaysRenderer::DeferredPass(RenderContext* renderContext, const Fbo::SharedP
 
     if (mRenderMode == RenderMode::Hybrid)
     {
-        mDeferredVars->setTexture("gReflectionTexture", mReflectionTexture);
-        mDeferredVars->setTexture("gShadowTexture", mShadowTexture);
+        mDeferredVars->setTexture("gReflectionTexture", mEnableDenoiseReflection ? mDenoisedReflectionTexture : mReflectionTexture);
+        mDeferredVars->setTexture("gShadowTexture", mEnableDenoiseShadows ? mDenoisedShadowTexture : mShadowTexture);
     }
 
     mDeferredState->setFbo(targetFbo);
@@ -320,6 +355,9 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
     {
         ConfigureDeferredProgram();
     }
+
+    gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
+    gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
 
     #define EDIT_MATERIAL(name, material)																		  \
         if (gui->beginGroup(name))																				  \

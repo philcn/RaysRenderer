@@ -3,6 +3,7 @@
 #include "Falcor.h"
 #include "FalcorExperimental.h"
 #include "TAA.h"
+#include "SVGFPass.h"
 
 using namespace Falcor;
 
@@ -22,6 +23,7 @@ private:
     void SetupScene();
     void SetupRendering(uint32_t width, uint32_t height);
     void SetupRaytracing(uint32_t width, uint32_t height);
+    void SetupDenoising(uint32_t width, uint32_t height);
     void SetupTAA(uint32_t width, uint32_t height);
     void ConfigureDeferredProgram();
 
@@ -50,11 +52,16 @@ private:
     RtProgramVars::SharedPtr mRtReflectionVars;
     RtState::SharedPtr mRtReflectionState;
     Texture::SharedPtr mReflectionTexture;
+    Texture::SharedPtr mDenoisedReflectionTexture;
 
     RtProgram::SharedPtr mRtShadowProgram;
     RtProgramVars::SharedPtr mRtShadowVars;
     RtState::SharedPtr mRtShadowState;
     Texture::SharedPtr mShadowTexture;
+    Texture::SharedPtr mDenoisedShadowTexture;
+
+    std::shared_ptr<SVGFPass> mShadowFilter;
+    std::shared_ptr<SVGFPass> mReflectionFilter;
 
     GraphicsProgram::SharedPtr mForwardProgram;
     GraphicsVars::SharedPtr mForwardVars;
@@ -76,6 +83,8 @@ private:
 
     bool mEnableRaytracedShadows;
     bool mEnableRaytracedReflection;
+    bool mEnableDenoiseShadows;
+    bool mEnableDenoiseReflection;
 
     uint32_t mFrameCount;
 };
