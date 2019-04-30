@@ -27,6 +27,7 @@ private:
     void SetupTAA(uint32_t width, uint32_t height);
     void ConfigureDeferredProgram();
 
+    void RenderGBuffer(RenderContext* renderContext);
     void DeferredPass(RenderContext* renderContext, const Fbo::SharedPtr& targetFbo);
     void ForwardRaytrace(RenderContext* renderContext);
     void RaytraceShadows(RenderContext* renderContext);
@@ -85,6 +86,7 @@ private:
     bool mEnableRaytracedReflection;
     bool mEnableDenoiseShadows;
     bool mEnableDenoiseReflection;
+    bool mEnableTAA;
 
     uint32_t mFrameCount;
 };

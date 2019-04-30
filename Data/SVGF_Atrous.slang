@@ -36,16 +36,17 @@ struct PsOut
 
 float ComputeVarianceCenter(int2 ipos, Texture2D signalTexture)
 {
-    const float kernel[2][2] = {
+    const float kernel[2][2] = 
+    {
         { 1.0 / 4.0, 1.0 / 8.0 },
         { 1.0 / 8.0, 1.0 / 16.0 }
     };
 
     float sum = 0.0;
     const int radius = 1;
-    for (int yy = -radius; yy <= radius; yy++)
+    for (int yy = -radius; yy <= radius; ++yy)
     {
-        for (int xx = -radius; xx <= radius; xx++)
+        for (int xx = -radius; xx <= radius; ++xx)
         {
             int2 p = ipos + int2(xx, yy);
             float k = kernel[abs(xx)][abs(yy)];
@@ -63,9 +64,9 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
 
     SVGFSample sampleCenter = FetchSignalSample(gInputSignal, gCompactNormDepth, ipos);
 
-    PsOut out;
     if (sampleCenter.linearZ < 0) // not valid depth, must be skybox
     {
+        PsOut out;
         out.signal = float4(sampleCenter.signal, sampleCenter.variance);
         return out;
     }
@@ -80,10 +81,10 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
     float3 sumSignal = sampleCenter.signal;
     float sumVariance = sampleCenter.variance;
 
-    const int radius = 2;
-    for (int yy = -radius; yy <= radius; yy++)
+    const int radius = ATROUS_RADIUS; // 2
+    for (int yy = -radius; yy <= radius; ++yy)
     {
-        for (int xx = -radius; xx <= radius; xx++)
+        for (int xx = -radius; xx <= radius; ++xx)
         {
             const int2 p = ipos + int2(xx, yy) * gStepSize;
             const bool inside = all(greaterThanEqual(p, int2(0, 0))) && all(lessThan(p, screenSize));
@@ -103,6 +104,7 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
         }
     }
 
+    PsOut out;
     out.signal = float4(sumSignal / sumWeight, sumVariance / (sumWeight * sumWeight));
     
     return out;

@@ -22,6 +22,7 @@ cbuffer PerPassCB
 {
     float gPhiColor;
     float gPhiNormal;
+    bool gEnableSpatialVarianceEstimation;
 };
 
 Texture2D gCompactNormDepth;
@@ -39,10 +40,10 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
     int2 ipos = int2(pos.xy);
     const int2 screenSize = GetTextureDims(gInputSignal, 0);
 
-    PsOut out;
     float h = gHistoryLength[ipos].r;
-    if (h >= 4.0)
+    if (h >= 4.0 || !gEnableSpatialVarianceEstimation)
     {
+        PsOut out;
         out.signal = gInputSignal[pos.xy];
         return out;
     }
@@ -50,6 +51,7 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
     SVGFSample sampleCenter = FetchSignalSample(gInputSignal, gCompactNormDepth, ipos);
     if (sampleCenter.linearZ < 0) // not valid depth, must be skybox
     {
+        PsOut out;
         out.signal = float4(sampleCenter.signal, sampleCenter.variance);
         return out;
     }
@@ -63,9 +65,9 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
 
     // Compute first and second moment spatially. This code also applies cross-bilateral filtering on the input color samples
     const int radius = 3;
-    for (int yy = -radius; yy <= radius; yy++)
+    for (int yy = -radius; yy <= radius; ++yy)
     {
-        for (int xx = -radius; xx <= radius; xx++)
+        for (int xx = -radius; xx <= radius; ++xx)
         {
             const int2 p = ipos + int2(xx, yy);
             const bool inside = all(greaterThanEqual(p, int2(0, 0))) && all(lessThan(p, screenSize));
@@ -91,6 +93,7 @@ PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
     float variance = sumMoments.g - sumMoments.r * sumMoments.r;
     variance *= 4.0 / h; // Boost variance for first few frames
 
+    PsOut out;
     out.signal = float4(sumSignal, variance);
 
     return out;

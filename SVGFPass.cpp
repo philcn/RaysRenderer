@@ -5,15 +5,18 @@ using namespace Falcor;
 SVGFPass::SVGFPass(uint32_t width, uint32_t height)
     : mAtrousIterations(4),
       mFeedbackTap(1),
+      mAtrousRadius(2),
       mAlpha(0.05f),
       mMomentsAlpha(0.2f),
       mPhiColor(10.0f),
-      mPhiNormal(128.0f)
+      mPhiNormal(128.0f),
+      mEnableTemporalReprojection(true),
+      mEnableSpatialVarianceEstimation(true)
 {
     Fbo::Desc reprojFboDesc;
     reprojFboDesc.setColorTarget(0, ResourceFormat::RGBA16Float); // Input signal, variance
     reprojFboDesc.setColorTarget(1, ResourceFormat::RG16Float); // 1st and 2nd Moments
-    reprojFboDesc.setColorTarget(2, ResourceFormat::R8Unorm); // History length
+    reprojFboDesc.setColorTarget(2, ResourceFormat::R16Float); // History length
 
     mCurrReprojFbo = FboHelper::create2D(width, height, reprojFboDesc);
     mPrevReprojFbo = FboHelper::create2D(width, height, reprojFboDesc);
@@ -37,6 +40,7 @@ SVGFPass::SVGFPass(uint32_t width, uint32_t height)
     mVarianceEstimationState = GraphicsState::create();
 
     mAtrousPass = FullScreenPass::create("SVGF_Atrous.slang");
+    mAtrousPass->getProgram()->addDefine("ATROUS_RADIUS", std::to_string(mAtrousRadius));
     mAtrousVars = GraphicsVars::create(mAtrousPass->getProgram()->getReflector());
     mAtrousState = GraphicsState::create();
 }
@@ -92,6 +96,7 @@ void SVGFPass::TemporalReprojection(RenderContext* renderContext)
 
     mReprojectionVars["PerPassCB"]["gAlpha"] = mAlpha;
     mReprojectionVars["PerPassCB"]["gMomentsAlpha"] = mMomentsAlpha;
+    mReprojectionVars["PerPassCB"]["gEnableTemporalReprojection"] = mEnableTemporalReprojection;
 
     mReprojectionState->setFbo(mCurrReprojFbo);
 
@@ -111,6 +116,7 @@ void SVGFPass::SpatialVarianceEstimation(RenderContext* renderContext)
 
     mVarianceEstimationVars["PerPassCB"]["gPhiColor"] = mPhiColor;
     mVarianceEstimationVars["PerPassCB"]["gPhiNormal"] = mPhiNormal;
+    mVarianceEstimationVars["PerPassCB"]["gEnableSpatialVarianceEstimation"] = mEnableSpatialVarianceEstimation;
 
     mVarianceEstimationState->setFbo(mAtrousPingFbo);
 
@@ -137,4 +143,20 @@ void SVGFPass::AtrousFilter(RenderContext* renderContext, uint32_t iteration, Fb
     mAtrousPass->execute(renderContext);
     renderContext->popGraphicsVars();
     renderContext->popGraphicsState();
+}
+
+void SVGFPass::RenderGui(Gui* gui)
+{
+    gui->addCheckBox("Temporal Reprojection", mEnableTemporalReprojection);
+    gui->addCheckBox("Spatial Variance Estimation", mEnableSpatialVarianceEstimation);
+    gui->addFloatSlider("Color Alpha", mAlpha, 0.0f, 1.0f);
+    gui->addFloatSlider("Moments Alpha", mMomentsAlpha, 0.0f, 1.0f);
+    gui->addFloatSlider("Phi Color", mPhiColor, 0.0f, 64.0f);
+    gui->addFloatSlider("Phi Normal", mPhiNormal, 1.0f, 256.0f);
+    gui->addIntSlider("Atrous Iterations", *reinterpret_cast<int32_t*>(&mAtrousIterations), 1, 5);
+    gui->addIntSlider("Feedback Tap", *reinterpret_cast<int32_t*>(&mFeedbackTap), 1, 5);
+    if (gui->addIntSlider("Atrous Radius", *reinterpret_cast<int32_t*>(&mAtrousRadius), 1, 2))
+    {
+        mAtrousPass->getProgram()->addDefine("ATROUS_RADIUS", std::to_string(mAtrousRadius));
+    }
 }

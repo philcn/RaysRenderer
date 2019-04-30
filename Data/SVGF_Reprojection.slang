@@ -22,6 +22,7 @@ cbuffer PerPassCB
 {
     float gAlpha;
     float gMomentsAlpha;
+    bool gEnableTemporalReprojection;
 };
 
 Texture2D gInputSignal;
@@ -162,6 +163,15 @@ bool ReprojectLastFilteredData(float2 fragCoord, out float3 prevSignal, out floa
 PsOut main(float2 texC : TEXCOORD, float4 pos : SV_POSITION)
 {
     const float3 signal = gInputSignal[pos.xy].rgb;
+
+    if (!gEnableTemporalReprojection)
+    {
+        PsOut out;
+        out.signal = float4(signal, 1.0); // Performs uniform bilateral filter with variance = 1.0
+        out.moments = 0.0;
+        out.historyLength = 1.0;
+        return out;
+    }
 
     float historyLength;
     float3 prevSignal;

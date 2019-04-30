@@ -15,6 +15,8 @@ public:
         Falcor::Texture::SharedPtr linearZ,
         Falcor::Texture::SharedPtr normalDepth);
 
+    void RenderGui(Falcor::Gui* gui);
+
 private:
     void TemporalReprojection(Falcor::RenderContext* renderContext);
     void SpatialVarianceEstimation(Falcor::RenderContext* renderContext);
@@ -46,10 +48,13 @@ private:
 
     uint32_t mAtrousIterations;
     uint32_t mFeedbackTap;
+    uint32_t mAtrousRadius;
     float mAlpha;
     float mMomentsAlpha;
     float mPhiColor;
     float mPhiNormal;
+    bool mEnableTemporalReprojection;
+    bool mEnableSpatialVarianceEstimation;
 
     struct
     {

@@ -24,6 +24,7 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mEnableRaytracedReflection = true;
     mEnableDenoiseShadows = true;
     mEnableDenoiseReflection = true;
+    mEnableTAA = true;
     mRenderMode = RenderMode::Hybrid;
 
     uint32_t width = sample->getCurrentFbo()->getWidth();
@@ -203,51 +204,63 @@ void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderC
         renderContext->setGraphicsVars(mForwardVars);
         mSceneRenderer->renderScene(renderContext, mCamera.get());
     }
-    else if (mRenderMode == RenderMode::Deferred || mRenderMode == RenderMode::Hybrid)
+    else if (mRenderMode == RenderMode::Deferred)
     {
         PROFILE("Deferred");
 
-        mGBufferVars["PerFrameCB"]["gRenderTargetDim"] = glm::vec2(targetFbo->getWidth(), targetFbo->getHeight());
+        RenderGBuffer(renderContext);
+        DeferredPass(renderContext, targetFbo);
+    }
+    else if (mRenderMode == RenderMode::Hybrid)
+    {
+        PROFILE("Hybrid");
 
-        mGBufferState->setFbo(mGBuffer);
-        renderContext->clearFbo(mGBuffer.get(), kClearColor, 1.0f, 0u);
-        renderContext->setGraphicsState(mGBufferState);
-        renderContext->setGraphicsVars(mGBufferVars);
-        mSceneRenderer->renderScene(renderContext, mCamera.get());
+        RenderGBuffer(renderContext);
 
-        if (mRenderMode == RenderMode::Hybrid)
+        const auto& motionTex = mGBuffer->getColorTexture(GBuffer::MotionVector);
+        const auto& linearZTex = mGBuffer->getColorTexture(GBuffer::SVGF_LinearZ);
+        const auto& compactTex = mGBuffer->getColorTexture(GBuffer::SVGF_CompactNormDepth);
+
+        if (mEnableRaytracedShadows)
         {
-            const auto& motionTex = mGBuffer->getColorTexture(GBuffer::MotionVector);
-            const auto& linearZTex = mGBuffer->getColorTexture(GBuffer::SVGF_LinearZ);
-            const auto& compactTex = mGBuffer->getColorTexture(GBuffer::SVGF_CompactNormDepth);
-
-            if (mEnableRaytracedShadows)
-            {
-                RaytraceShadows(renderContext);
-
-                if (mEnableDenoiseShadows)
-                {
-                    PROFILE("DenoiseShadows");
-                    mDenoisedShadowTexture = mShadowFilter->Execute(renderContext, mShadowTexture, motionTex, linearZTex, compactTex);
-                }
-            }
-            if (mEnableRaytracedReflection)
-            {
-                RaytraceReflection(renderContext);
-
-                if (mEnableDenoiseReflection)
-                {
-                    PROFILE("DenoiseReflection");
-                    mDenoisedReflectionTexture = mReflectionFilter->Execute(renderContext, mReflectionTexture, motionTex, linearZTex, compactTex);
-                }
-            }
+            RaytraceShadows(renderContext);
+        }
+        if (mEnableRaytracedReflection)
+        {
+            RaytraceReflection(renderContext);
+        }
+        if (mEnableRaytracedShadows && mEnableDenoiseShadows)
+        {
+            PROFILE("DenoiseShadows");
+            mDenoisedShadowTexture = mShadowFilter->Execute(renderContext, mShadowTexture, motionTex, linearZTex, compactTex);
+        }
+        if (mEnableRaytracedReflection && mEnableDenoiseReflection)
+        {
+            PROFILE("DenoiseReflection");
+            mDenoisedReflectionTexture = mReflectionFilter->Execute(renderContext, mReflectionTexture, motionTex, linearZTex, compactTex);
         }
 
         DeferredPass(renderContext, targetFbo);
     }
 
-    RunTAA(renderContext, targetFbo);
+    if (mEnableTAA)
+    {
+        RunTAA(renderContext, targetFbo);
+    }
+
     mFrameCount++;
+}
+
+void RaysRenderer::RenderGBuffer(RenderContext* renderContext)
+{
+    PROFILE("GBuffer");
+    mGBufferVars["PerFrameCB"]["gRenderTargetDim"] = glm::vec2(mGBuffer->getWidth(), mGBuffer->getHeight());
+
+    mGBufferState->setFbo(mGBuffer);
+    renderContext->clearFbo(mGBuffer.get(), kClearColor, 1.0f, 0u);
+    renderContext->setGraphicsState(mGBufferState);
+    renderContext->setGraphicsVars(mGBufferVars);
+    mSceneRenderer->renderScene(renderContext, mCamera.get());
 }
 
 void RaysRenderer::ForwardRaytrace(RenderContext* renderContext)
@@ -347,19 +360,37 @@ void RaysRenderer::RunTAA(RenderContext* renderContext, const Fbo::SharedPtr& ta
 
 void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
 {
-    if (mRenderMode == RenderMode::Hybrid)
+    if (gui->beginGroup("Rendering"))
     {
-        if (gui->addCheckBox("Raytraced Reflection", mEnableRaytracedReflection))
+        if (mRenderMode == RenderMode::Hybrid)
         {
-            ConfigureDeferredProgram();
-        }
-        if (gui->addCheckBox("Raytraced Shadows", mEnableRaytracedShadows))
-        {
-            ConfigureDeferredProgram();
+            if (gui->addCheckBox("Raytraced Reflection", mEnableRaytracedReflection))
+            {
+                ConfigureDeferredProgram();
+            }
+            if (gui->addCheckBox("Raytraced Shadows", mEnableRaytracedShadows))
+            {
+                ConfigureDeferredProgram();
+            }
+
+            gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
+            gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
+
+            if (gui->beginGroup("Reflection Filter"))
+            {
+                mReflectionFilter->RenderGui(gui);
+                gui->endGroup();
+            }
+
+            if (gui->beginGroup("Shadow Filter"))
+            {
+                mReflectionFilter->RenderGui(gui);
+                gui->endGroup();
+            }
         }
 
-        gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
-        gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
+        gui->addCheckBox("TAA", mEnableTAA);
+        gui->endGroup();
     }
 
     #define EDIT_MATERIAL(name, material)																		  \
