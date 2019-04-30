@@ -1,0 +1,78 @@
+{
+    "version": 2,
+    "scene_unit": 1.0,
+    "camera_speed": 10.0,
+    "lighting_scale": 1.0,
+    "models": [
+        {
+            "file": "D:\\Projects\\Falcor\\Media\\Pica\\Machines.fbx",
+            "name": "Machines",
+            "material": {
+                "shading_model": "metal_rough"
+            },
+            "instances": [
+                {
+                    "name": "Machines0",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "rotation": [
+                        0.0,
+                        -0.0,
+                        -0.0
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "D:\\Projects\\Falcor\\Media\\Pica\\Ground.fbx",
+            "name": "Ground",
+            "material": {
+                "shading_model": "metal_rough"
+            },
+            "instances": [
+                {
+                    "name": "Ground0",
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scaling": [
+                        0.20000000298023225,
+                        0.20000000298023225,
+                        0.20000000298023225
+                    ],
+                    "rotation": [
+                        0.0,
+                        -0.0,
+                        -0.0
+                    ]
+                }
+            ]
+        }
+    ],
+    "lights": [
+        {
+            "name": "DirLight0",
+            "type": "dir_light",
+            "intensity": [
+                1.2000000476837159,
+                1.2000000476837159,
+                1.2000000476837159
+            ],
+            "direction": [
+                -0.1889593005180359,
+                -0.741632342338562,
+                -0.6436427235603333
+            ]
+        }
+    ]
+}

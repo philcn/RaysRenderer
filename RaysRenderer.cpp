@@ -2,7 +2,8 @@
 
 namespace
 {
-    static const char* kDefaultScene = "../../Media/Pica/Pica.fscene";
+    // Relative to working directory. Note: different between running from VS and standalone
+    static const char* kDefaultScene = "Data/Models/Pica.fscene";
     static const glm::vec4 kClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     static const glm::vec4 kSkyColor(0.2f, 0.6f, 0.9f, 1.0f);
 
