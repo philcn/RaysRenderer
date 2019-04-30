@@ -22,10 +22,13 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mFrameCount = 0;
     mEnableRaytracedShadows = true;
     mEnableRaytracedReflection = true;
+    mEnableRaytracedAO = true;
     mEnableDenoiseShadows = true;
     mEnableDenoiseReflection = true;
+    mEnableDenoiseAO = true;
     mEnableTAA = true;
     mRenderMode = RenderMode::Hybrid;
+    mAODistance = 3.0f;
 
     uint32_t width = sample->getCurrentFbo()->getWidth();
     uint32_t height = sample->getCurrentFbo()->getHeight();
@@ -55,7 +58,7 @@ void RaysRenderer::SetupScene()
 
     mGroundMaterial = Material::create("Ground");
     mGroundMaterial->setBaseColor(glm::vec4(0.03f, 0.0f, 0.0f, 1.0f));
-    mGroundMaterial->setSpecularParams(glm::vec4(0.0f, 0.35f, 0.0f, 0.0f));
+    mGroundMaterial->setSpecularParams(glm::vec4(0.0f, 0.54f, 0.0f, 0.0f));
 
     auto& model = mScene->getModel(0);
     model->getMesh(0)->setMaterial(mBasicMaterial);
@@ -142,12 +145,29 @@ void RaysRenderer::SetupRaytracing(uint32_t width, uint32_t height)
     mRtShadowState->setMaxTraceRecursionDepth(1); // no recursion
 
     mShadowTexture = Texture::create2D(width, height, ResourceFormat::R8Unorm, 1, 1, nullptr, bindFlags);
+
+    // Raytraced AO
+    RtProgram::Desc aoProgDesc;
+    aoProgDesc.addShaderLibrary("RaytracedAO.slang");
+    aoProgDesc.setRayGen("RayGen");
+    aoProgDesc.addHitGroup(0, "", "PrimaryAHS");
+    aoProgDesc.addMiss(0, "PrimaryMiss");
+
+    mRtAOProgram = RtProgram::create(aoProgDesc);
+    mRtAOVars = RtProgramVars::create(mRtAOProgram, mScene);
+
+    mRtAOState = RtState::create();
+    mRtAOState->setProgram(mRtAOProgram);
+    mRtAOState->setMaxTraceRecursionDepth(1);
+
+    mAOTexture = Texture::create2D(width, height, ResourceFormat::R8Unorm, 1, 1, nullptr, bindFlags);
 }
 
 void RaysRenderer::SetupDenoising(uint32_t width, uint32_t height)
 {
     mShadowFilter = std::make_shared<SVGFPass>(width, height);
     mReflectionFilter = std::make_shared<SVGFPass>(width, height);
+    mAOFilter = std::make_shared<SVGFPass>(width, height);
 }
 
 void RaysRenderer::SetupTAA(uint32_t width, uint32_t height)
@@ -167,23 +187,13 @@ void RaysRenderer::ConfigureDeferredProgram()
 {
     const auto& program = mDeferredPass->getProgram();
     
-    if (mRenderMode == RenderMode::Hybrid && mEnableRaytracedReflection)
-    {
-        program->addDefine("RAYTRACE_REFLECTIONS");
-    }
-    else
-    {
-        program->removeDefine("RAYTRACE_REFLECTIONS");
-    }
+    #define HANDLE_DEFINE(condition, literal)                                            \
+        if (mRenderMode == RenderMode::Hybrid && condition) program->addDefine(literal); \
+        else program->removeDefine(literal);
 
-    if (mRenderMode == RenderMode::Hybrid && mEnableRaytracedShadows)
-    {
-        program->addDefine("RAYTRACE_SHADOWS");
-    }
-    else
-    {
-        program->removeDefine("RAYTRACE_SHADOWS");
-    }
+    HANDLE_DEFINE(mEnableRaytracedReflection, "RAYTRACE_REFLECTIONS");
+    HANDLE_DEFINE(mEnableRaytracedShadows, "RAYTRACE_SHADOWS");
+    HANDLE_DEFINE(mEnableRaytracedAO, "RAYTRACE_AO");
 }
 
 void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderContext, const Fbo::SharedPtr& targetFbo)
@@ -229,6 +239,10 @@ void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderC
         {
             RaytraceReflection(renderContext);
         }
+        if (mEnableRaytracedAO)
+        {
+            RaytraceAmbientOcclusion(renderContext);
+        }
         if (mEnableRaytracedShadows && mEnableDenoiseShadows)
         {
             PROFILE("DenoiseShadows");
@@ -238,6 +252,11 @@ void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderC
         {
             PROFILE("DenoiseReflection");
             mDenoisedReflectionTexture = mReflectionFilter->Execute(renderContext, mReflectionTexture, motionTex, linearZTex, compactTex);
+        }
+        if (mEnableRaytracedAO && mEnableDenoiseAO)
+        {
+            PROFILE("DenoiseAO");
+            mDenoisedAOTexture = mAOFilter->Execute(renderContext, mAOTexture, motionTex, linearZTex, compactTex);
         }
 
         DeferredPass(renderContext, targetFbo);
@@ -317,6 +336,25 @@ void RaysRenderer::RaytraceReflection(RenderContext* renderContext)
     mRaytracer->renderScene(renderContext, mRtReflectionVars, mRtReflectionState, uvec3(width, height, 1), mCamera.get());
 }
 
+void RaysRenderer::RaytraceAmbientOcclusion(RenderContext* renderContext)
+{
+    PROFILE("RaytraceAO");
+
+    uint32_t width = mAOTexture->getWidth();
+    uint32_t height = mAOTexture->getHeight();
+
+    mRtAOVars->getRayGenVars()->setTexture("gOutput", mAOTexture);
+    mRtAOVars->getRayGenVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
+    mRtAOVars->getRayGenVars()->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
+
+    auto aoVars = mRtAOVars->getGlobalVars();
+    aoVars["PerFrameCB"]["gFrameCount"] = mFrameCount;
+    aoVars["PerFrameCB"]["gAODistance"] = mAODistance;
+
+    renderContext->clearUAV(mAOTexture->getUAV().get(), kClearColor);
+    mRaytracer->renderScene(renderContext, mRtAOVars, mRtAOState, uvec3(width, height, 1), mCamera.get());
+}
+
 void RaysRenderer::DeferredPass(RenderContext* renderContext, const Fbo::SharedPtr& targetFbo)
 {
     PROFILE("DeferredPass");
@@ -333,6 +371,7 @@ void RaysRenderer::DeferredPass(RenderContext* renderContext, const Fbo::SharedP
     {
         mDeferredVars->setTexture("gReflectionTexture", mEnableDenoiseReflection ? mDenoisedReflectionTexture : mReflectionTexture);
         mDeferredVars->setTexture("gShadowTexture", mEnableDenoiseShadows ? mDenoisedShadowTexture : mShadowTexture);
+        mDeferredVars->setTexture("gAOTexture", mEnableDenoiseAO ? mDenoisedAOTexture : mAOTexture);
     }
 
     mDeferredState->setFbo(targetFbo);
@@ -372,9 +411,16 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
             {
                 ConfigureDeferredProgram();
             }
+            if (gui->addCheckBox("Raytraced AO", mEnableRaytracedAO))
+            {
+                ConfigureDeferredProgram();
+            }
+
+            gui->addFloatSlider("AO Distance", mAODistance, 0.1f, 20.0f);
 
             gui->addCheckBox("Denoise Reflection", mEnableDenoiseReflection);
             gui->addCheckBox("Denoise Shadows", mEnableDenoiseShadows);
+            gui->addCheckBox("Denoise AO", mEnableDenoiseAO);
 
             if (gui->beginGroup("Reflection Filter"))
             {
@@ -385,6 +431,12 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
             if (gui->beginGroup("Shadow Filter"))
             {
                 mReflectionFilter->RenderGui(gui);
+                gui->endGroup();
+            }
+
+            if (gui->beginGroup("AO Filter"))
+            {
+                mAOFilter->RenderGui(gui);
                 gui->endGroup();
             }
         }

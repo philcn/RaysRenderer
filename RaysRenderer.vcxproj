@@ -31,6 +31,7 @@
     <None Include="Data\ForwardRaytrace.slang" />
     <None Include="Data\GBuffer.slang" />
     <None Include="Data\GBufferUtils.slang" />
+    <None Include="Data\RaytracedAO.slang" />
     <None Include="Data\RaytracedReflection.slang" />
     <None Include="Data\RaytracedShadows.slang" />
     <None Include="Data\SVGF_Atrous.slang" />

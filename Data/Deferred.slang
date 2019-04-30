@@ -3,6 +3,7 @@ import GBufferUtils;
 
 Texture2D gReflectionTexture;
 Texture2D gShadowTexture;
+Texture2D gAOTexture;
 
 cbuffer PerImageCB
 {
@@ -28,6 +29,10 @@ float4 main(float2 texC : TEXCOORD, float4 pos : SV_POSITION) : SV_TARGET
 
 #if defined(RAYTRACE_REFLECTIONS)
     color += gReflectionTexture.Load(int3(pos.xy, 0)).rgb;
+#endif
+
+#if defined(RAYTRACE_AO)
+    color *= gAOTexture.Load(int3(pos.xy, 0)).r;
 #endif
 
     return float4(color, 1.0);

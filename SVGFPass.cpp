@@ -6,7 +6,7 @@ SVGFPass::SVGFPass(uint32_t width, uint32_t height)
     : mAtrousIterations(4),
       mFeedbackTap(1),
       mAtrousRadius(2),
-      mAlpha(0.05f),
+      mAlpha(0.15f),
       mMomentsAlpha(0.2f),
       mPhiColor(10.0f),
       mPhiNormal(128.0f),

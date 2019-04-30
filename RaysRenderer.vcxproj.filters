@@ -48,5 +48,8 @@
     <None Include="Data\SVGF_Atrous.slang">
       <Filter>Data</Filter>
     </None>
+    <None Include="Data\RaytracedAO.slang">
+      <Filter>Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

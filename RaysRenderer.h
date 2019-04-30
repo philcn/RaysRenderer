@@ -32,6 +32,7 @@ private:
     void ForwardRaytrace(RenderContext* renderContext);
     void RaytraceShadows(RenderContext* renderContext);
     void RaytraceReflection(RenderContext* renderContext);
+    void RaytraceAmbientOcclusion(RenderContext* renderContext);
     void RunTAA(RenderContext* renderContext, const Fbo::SharedPtr& colorFbo);
 
     RtScene::SharedPtr mScene;
@@ -49,20 +50,27 @@ private:
     RtState::SharedPtr mForwardRaytraceState;
     Texture::SharedPtr mForwardRaytraceOutput;
 
-    RtProgram::SharedPtr mRtReflectionProgram;
-    RtProgramVars::SharedPtr mRtReflectionVars;
-    RtState::SharedPtr mRtReflectionState;
-    Texture::SharedPtr mReflectionTexture;
-    Texture::SharedPtr mDenoisedReflectionTexture;
-
     RtProgram::SharedPtr mRtShadowProgram;
     RtProgramVars::SharedPtr mRtShadowVars;
     RtState::SharedPtr mRtShadowState;
     Texture::SharedPtr mShadowTexture;
     Texture::SharedPtr mDenoisedShadowTexture;
 
+    RtProgram::SharedPtr mRtReflectionProgram;
+    RtProgramVars::SharedPtr mRtReflectionVars;
+    RtState::SharedPtr mRtReflectionState;
+    Texture::SharedPtr mReflectionTexture;
+    Texture::SharedPtr mDenoisedReflectionTexture;
+
+    RtProgram::SharedPtr mRtAOProgram;
+    RtProgramVars::SharedPtr mRtAOVars;
+    RtState::SharedPtr mRtAOState;
+    Texture::SharedPtr mAOTexture;
+    Texture::SharedPtr mDenoisedAOTexture;
+
     std::shared_ptr<SVGFPass> mShadowFilter;
     std::shared_ptr<SVGFPass> mReflectionFilter;
+    std::shared_ptr<SVGFPass> mAOFilter;
 
     GraphicsProgram::SharedPtr mForwardProgram;
     GraphicsVars::SharedPtr mForwardVars;
@@ -84,9 +92,12 @@ private:
 
     bool mEnableRaytracedShadows;
     bool mEnableRaytracedReflection;
+    bool mEnableRaytracedAO;
     bool mEnableDenoiseShadows;
     bool mEnableDenoiseReflection;
+    bool mEnableDenoiseAO;
     bool mEnableTAA;
 
     uint32_t mFrameCount;
+    float mAODistance;
 };
