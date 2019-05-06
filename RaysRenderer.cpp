@@ -27,9 +27,11 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mEnableDenoiseShadows = true;
     mEnableDenoiseReflection = true;
     mEnableDenoiseAO = true;
+    mEnableNearFieldGI = true;
     mEnableTAA = true;
     mRenderMode = RenderMode::Hybrid;
     mAODistance = 3.0f;
+    mNearFieldGIStrength = 0.5f;
 
     uint32_t width = sample->getCurrentFbo()->getWidth();
     uint32_t height = sample->getCurrentFbo()->getHeight();
@@ -195,6 +197,7 @@ void RaysRenderer::ConfigureDeferredProgram()
     HANDLE_DEFINE(mEnableRaytracedReflection, "RAYTRACE_REFLECTIONS");
     HANDLE_DEFINE(mEnableRaytracedShadows, "RAYTRACE_SHADOWS");
     HANDLE_DEFINE(mEnableRaytracedAO, "RAYTRACE_AO");
+    HANDLE_DEFINE(mEnableNearFieldGI, "NEAR_FIELD_GI_APPROX");
 }
 
 void RaysRenderer::onFrameRender(SampleCallbacks* sample, RenderContext* renderContext, const Fbo::SharedPtr& targetFbo)
@@ -373,6 +376,7 @@ void RaysRenderer::DeferredPass(RenderContext* renderContext, const Fbo::SharedP
         mDeferredVars->setTexture("gReflectionTexture", mEnableDenoiseReflection ? mDenoisedReflectionTexture : mReflectionTexture);
         mDeferredVars->setTexture("gShadowTexture", mEnableDenoiseShadows ? mDenoisedShadowTexture : mShadowTexture);
         mDeferredVars->setTexture("gAOTexture", mEnableDenoiseAO ? mDenoisedAOTexture : mAOTexture);
+        mDeferredVars["PerImageCB"]["gNearFieldGIStrength"] = mNearFieldGIStrength;
     }
 
     mDeferredState->setFbo(targetFbo);
@@ -440,6 +444,13 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
                 mAOFilter->RenderGui(gui);
                 gui->endGroup();
             }
+
+            if (gui->addCheckBox("Near Field GI", mEnableNearFieldGI))
+            {
+                ConfigureDeferredProgram();
+            }
+
+            gui->addFloatSlider("Near Field GI Strength", mNearFieldGIStrength, 0.0f, 1.0f);
         }
 
         gui->addCheckBox("TAA", mEnableTAA);

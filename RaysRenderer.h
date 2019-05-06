@@ -96,8 +96,10 @@ private:
     bool mEnableDenoiseShadows;
     bool mEnableDenoiseReflection;
     bool mEnableDenoiseAO;
+    bool mEnableNearFieldGI;
     bool mEnableTAA;
 
     uint32_t mFrameCount;
     float mAODistance;
+    float mNearFieldGIStrength;
 };

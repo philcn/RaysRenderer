@@ -19,7 +19,6 @@ Hybrid raytracing and filtering playground.
 
 ### Global Illumination
 
-* GTAO GI approximation (Jimenez 17)
 * 1 bounce GGX diffuse global illumination
 * Surfel global illumination (EA SEED 18)
 * Raytraced irradiance fields (McGuire 19)
