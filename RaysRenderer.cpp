@@ -370,7 +370,10 @@ void RaysRenderer::DeferredPass(RenderContext* renderContext, const Fbo::SharedP
     PROFILE("DeferredPass");
 
     mCamera->setIntoConstantBuffer(mDeferredVars["InternalPerFrameCB"].get(), 0);
-    mScene->getLight(0)->setIntoProgramVars(mDeferredVars.get(), mDeferredVars["InternalPerFrameCB"].get(), "gLights[0]");
+    if (mScene->getLightCount() > 0)
+    {
+        mScene->getLight(0)->setIntoProgramVars(mDeferredVars.get(), mDeferredVars["InternalPerFrameCB"].get(), "gLights[0]");
+    }
 
     mDeferredVars->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
     mDeferredVars->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
@@ -476,7 +479,7 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
             gui->endGroup();                                                                                      \
         }
 
-    if (gui->beginGroup("Scene"))
+    if (gui->beginGroup("Content"))
     {
         if (gui->addButton("Load Scene"))
         {
@@ -496,6 +499,9 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
         {
             EDIT_MATERIAL("Model", mBasicMaterial)
         }
+
+        mScene->renderUI(gui, "Scene");
+
         gui->endGroup();
     }
 }
