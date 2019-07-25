@@ -7,9 +7,9 @@ shared cbuffer PerFrameCB
     uint gFrameCount;
 };
 
-Texture2D gGBuf0;
+shared Texture2D gGBuf0;
 
-RWTexture2D<float> gOutput;
+shared RWTexture2D<float> gOutput;
 
 struct ShadowRayData
 {

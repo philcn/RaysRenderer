@@ -1,9 +1,9 @@
 import Shading;
 
-Texture2D gGBuf0; // WorldPosition
-Texture2D gGBuf1; // NormalRoughness
-Texture2D gGBuf2; // Albedo
-Texture2D gGBuf3; // MotionVector, unused
+shared Texture2D gGBuf0; // WorldPosition
+shared Texture2D gGBuf1; // NormalRoughness
+shared Texture2D gGBuf2; // Albedo
+shared Texture2D gGBuf3; // MotionVector, unused
 
 ShadingData LoadGBuffer(float2 pos)
 {

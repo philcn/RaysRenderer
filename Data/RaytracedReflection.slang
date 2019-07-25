@@ -10,7 +10,7 @@ shared cbuffer PerFrameCB
     uint gFrameCount;
 };
 
-RWTexture2D<float4> gOutput;
+shared RWTexture2D<float4> gOutput;
 
 struct ReflectionRayData
 {

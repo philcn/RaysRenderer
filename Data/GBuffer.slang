@@ -36,7 +36,11 @@ GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
 	float4 svgfLinearZOut = float4(linearZ, maxChangeZ, vOut.prevPosH.z, objNorm);
 
 	// The 'motion vector' buffer
-	float2 svgfMotionVec = calcMotionVector(pixelCrd.xy, vOut.prevPosH, gRenderTargetDim) + float2(gCamera.jitterX, -gCamera.jitterY);
+    float2 jitter = float2(gCamera.jitterX, gCamera.jitterY);
+#ifdef FALCOR_D3D
+    jitter.y *= -1;
+#endif
+	float2 svgfMotionVec = calcMotionVector(pixelCrd.xy, vOut.prevPosH, gRenderTargetDim) + jitter;
 	float2 posNormFWidth = float2(length(fwidth(sd.posW)), length(fwidth(sd.N))); 
 	float4 svgfMotionVecOut = float4(svgfMotionVec, posNormFWidth);
 

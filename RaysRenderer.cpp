@@ -311,8 +311,8 @@ void RaysRenderer::RaytraceShadows(RenderContext* renderContext)
     uint32_t width = mShadowTexture->getWidth();
     uint32_t height = mShadowTexture->getHeight();
 
-    mRtShadowVars->getRayGenVars()->setTexture("gOutput", mShadowTexture);
-    mRtShadowVars->getRayGenVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
+    mRtShadowVars->getGlobalVars()->setTexture("gOutput", mShadowTexture);
+    mRtShadowVars->getGlobalVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
 
     auto shadowVars = mRtShadowVars->getGlobalVars();
     shadowVars["PerFrameCB"]["gFrameCount"] = mFrameCount;
@@ -328,10 +328,10 @@ void RaysRenderer::RaytraceReflection(RenderContext* renderContext)
     uint32_t width = mReflectionTexture->getWidth();
     uint32_t height = mReflectionTexture->getHeight();
 
-    mRtReflectionVars->getRayGenVars()->setTexture("gOutput", mReflectionTexture);
-    mRtReflectionVars->getRayGenVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
-    mRtReflectionVars->getRayGenVars()->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
-    mRtReflectionVars->getRayGenVars()->setTexture("gGBuf2", mGBuffer->getColorTexture(GBuffer::Albedo));
+    mRtReflectionVars->getGlobalVars()->setTexture("gOutput", mReflectionTexture);
+    mRtReflectionVars->getGlobalVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
+    mRtReflectionVars->getGlobalVars()->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
+    mRtReflectionVars->getGlobalVars()->setTexture("gGBuf2", mGBuffer->getColorTexture(GBuffer::Albedo));
 
     auto reflectionVars = mRtReflectionVars->getGlobalVars();
     reflectionVars["PerFrameCB"]["gFrameCount"] = mFrameCount;
@@ -347,9 +347,9 @@ void RaysRenderer::RaytraceAmbientOcclusion(RenderContext* renderContext)
     uint32_t width = mAOTexture->getWidth();
     uint32_t height = mAOTexture->getHeight();
 
-    mRtAOVars->getRayGenVars()->setTexture("gOutput", mAOTexture);
-    mRtAOVars->getRayGenVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
-    mRtAOVars->getRayGenVars()->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
+    mRtAOVars->getGlobalVars()->setTexture("gOutput", mAOTexture);
+    mRtAOVars->getGlobalVars()->setTexture("gGBuf0", mGBuffer->getColorTexture(GBuffer::WorldPosition));
+    mRtAOVars->getGlobalVars()->setTexture("gGBuf1", mGBuffer->getColorTexture(GBuffer::NormalRoughness));
 
     auto aoVars = mRtAOVars->getGlobalVars();
     aoVars["PerFrameCB"]["gFrameCount"] = mFrameCount;
@@ -454,6 +454,8 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
         }
 
         gui->addCheckBox("TAA", mEnableTAA);
+        mTAA.pTAA->renderUI(gui, "TAA");
+
         gui->endGroup();
     }
 
@@ -514,6 +516,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     SampleConfig config;
     config.windowDesc.title = "Rays Renderer";
     config.windowDesc.resizableWindow = true;
+    config.deviceDesc.enableRaytracing = true;
     Sample::run(config, pRenderer);
     return 0;
 }

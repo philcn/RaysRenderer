@@ -132,7 +132,7 @@ void SVGFPass::AtrousFilter(RenderContext* renderContext, uint32_t iteration, Fb
     mAtrousVars->setTexture("gCompactNormDepth", mGBufferInput.compactNormalDepth);
     mAtrousVars->setTexture("gInputSignal", input->getColorTexture(0));
 
-    mAtrousVars["PerPassCB"]["gStepSize"] = 1 << iteration;
+    mAtrousVars["PerPassCB"]["gStepSize"] = 1u << iteration;
     mAtrousVars["PerPassCB"]["gPhiColor"] = mPhiColor;
     mAtrousVars["PerPassCB"]["gPhiNormal"] = mPhiNormal;
 

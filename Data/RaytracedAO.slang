@@ -8,10 +8,10 @@ shared cbuffer PerFrameCB
     float gAODistance;
 };
 
-Texture2D gGBuf0;
-Texture2D gGBuf1;
+shared Texture2D gGBuf0;
+shared Texture2D gGBuf1;
 
-RWTexture2D<float> gOutput;
+shared RWTexture2D<float> gOutput;
 
 struct AORayData
 {
