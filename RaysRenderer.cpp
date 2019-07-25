@@ -39,9 +39,8 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     mCamera = Camera::create();
     mCamera->setAspectRatio((float)width / (float)height);
     mCamController.attachCamera(mCamera);
-    mCamController.setCameraSpeed(16.0f);
 
-    SetupScene();
+    SetupScene(kDefaultScene);
     SetupRendering(width, height);
     SetupRaytracing(width, height);
     SetupDenoising(width, height);
@@ -50,37 +49,46 @@ void RaysRenderer::onLoad(SampleCallbacks* sample, RenderContext* renderContext)
     ConfigureDeferredProgram();
 }
 
-void RaysRenderer::SetupScene()
+void RaysRenderer::SetupScene(const std::string& filename)
 {
-    mScene = RtScene::loadFromFile(kDefaultScene, RtBuildFlags::None, Model::LoadFlags::None, Scene::LoadFlags::None);
+    mScene = RtScene::loadFromFile(filename, RtBuildFlags::None, Model::LoadFlags::None, Scene::LoadFlags::None);
 
-    // Create and bind materials
-    mBasicMaterial = Material::create("Model");
-    mBasicMaterial->setBaseColor(glm::vec4(0.95f, 0.0f, 0.0f, 1.0f));
-    mBasicMaterial->setSpecularParams(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    mSceneRenderer = SceneRenderer::create(mScene);
+    mRaytracer = RtSceneRenderer::create(mScene);
 
-    mGroundMaterial = Material::create("Ground");
-    mGroundMaterial->setBaseColor(glm::vec4(0.03f, 0.0f, 0.0f, 1.0f));
-    mGroundMaterial->setSpecularParams(glm::vec4(0.0f, 0.54f, 0.0f, 0.0f));
+    if (filename == kDefaultScene)
+    {
+        // Create and bind materials
+        mBasicMaterial = Material::create("Model");
+        mBasicMaterial->setBaseColor(glm::vec4(0.95f, 0.0f, 0.0f, 1.0f));
+        mBasicMaterial->setSpecularParams(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-    auto& model = mScene->getModel(0);
-    model->getMesh(0)->setMaterial(mBasicMaterial);
-    mScene->getModel(1)->getMesh(0)->setMaterial(mGroundMaterial);
+        mGroundMaterial = Material::create("Ground");
+        mGroundMaterial->setBaseColor(glm::vec4(0.03f, 0.0f, 0.0f, 1.0f));
+        mGroundMaterial->setSpecularParams(glm::vec4(0.0f, 0.54f, 0.0f, 0.0f));
+
+        mScene->getModel(0)->getMesh(0)->setMaterial(mBasicMaterial);
+        mScene->getModel(1)->getMesh(0)->setMaterial(mGroundMaterial);
+    }
+    else
+    {
+        mBasicMaterial = nullptr;
+        mGroundMaterial = nullptr;
+    }
 
     // Set scene specific camera parameters
-    float radius = model->getRadius();
+    float radius = mScene->getRadius();
     float nearZ = std::max(0.1f, radius / 750.0f);
     float farZ = radius * 20;
         
-    mCamera->setPosition(glm::vec3(0.2f, 0.5f, 1.0f) * radius);
-    mCamera->setTarget(model->getCenter());
+    mCamera->setPosition(glm::vec3(0.2f, 0.5f, 1.0f) * radius * 0.5f);
+    mCamera->setTarget(mScene->getCenter());
     mCamera->setDepthRange(nearZ, farZ);
+    mCamController.setCameraSpeed(radius);
 }
 
 void RaysRenderer::SetupRendering(uint32_t width, uint32_t height)
 {
-    mSceneRenderer = SceneRenderer::create(mScene);
-
     // Forward pass
     mForwardProgram = GraphicsProgram::createFromFile("Forward.slang", "", "main");
     mForwardVars = GraphicsVars::create(mForwardProgram->getReflector());
@@ -112,8 +120,6 @@ void RaysRenderer::SetupRendering(uint32_t width, uint32_t height)
 
 void RaysRenderer::SetupRaytracing(uint32_t width, uint32_t height)
 {
-    mRaytracer = RtSceneRenderer::create(mScene);
-
     // Raytraced reflection
     RtProgram::Desc reflectionProgDesc;
     reflectionProgDesc.addShaderLibrary("RaytracedReflection.slang");
@@ -459,19 +465,39 @@ void RaysRenderer::onGuiRender(SampleCallbacks* sample, Gui* gui)
         gui->endGroup();
     }
 
-    #define EDIT_MATERIAL(name, material)																		  \
-        if (gui->beginGroup(name))																				  \
-        {																										  \
-            auto spec = material->getSpecularParams();															  \
+    #define EDIT_MATERIAL(name, material)                                                                          \
+        if (gui->beginGroup(name))                                                                                  \
+        {                                                                                                          \
+            auto spec = material->getSpecularParams();                                                              \
             if (gui->addFloatSlider(name ## "_Roughness", spec.g, 0.0f, 1.0f)) material->setSpecularParams(spec); \
             if (gui->addFloatSlider(name ## "_Metalness", spec.b, 0.0f, 1.0f)) material->setSpecularParams(spec); \
-            auto diff = material->getBaseColor();																  \
-            if (gui->addRgbaColor(name ## "Diffuse", diff)) material->setBaseColor(diff);						  \
-            gui->endGroup();																					  \
+            auto diff = material->getBaseColor();                                                                  \
+            if (gui->addRgbaColor(name ## "Diffuse", diff)) material->setBaseColor(diff);                          \
+            gui->endGroup();                                                                                      \
         }
 
-    EDIT_MATERIAL("Ground", mGroundMaterial)
-    EDIT_MATERIAL("Model", mBasicMaterial)
+    if (gui->beginGroup("Scene"))
+    {
+        if (gui->addButton("Load Scene"))
+        {
+            std::string filename;
+            if (openFileDialog(Scene::kFileExtensionFilters, filename))
+            {
+                SetupScene(filename);
+                SetupRaytracing(sample->getCurrentFbo()->getWidth(), sample->getCurrentFbo()->getHeight());
+            }
+        }
+        if (mGroundMaterial)
+        {
+            EDIT_MATERIAL("Ground", mGroundMaterial)
+        }
+
+        if (mBasicMaterial)
+        {
+            EDIT_MATERIAL("Model", mBasicMaterial)
+        }
+        gui->endGroup();
+    }
 }
 
 bool RaysRenderer::onKeyEvent(SampleCallbacks* sample, const KeyboardEvent& keyEvent)

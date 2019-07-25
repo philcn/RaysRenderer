@@ -20,29 +20,29 @@ struct GBuffer
 // A simple utility to convert a float to a 2-component octohedral representation packed into one uint
 uint DirToOct(float3 normal)
 {
-	float2 p = normal.xy * (1.0 / dot(abs(normal), 1.0.xxx));
-	float2 e = normal.z > 0.0 ? p : (1.0 - abs(p.yx)) * (step(0.0,p)*2.0-(float2)(1.0)); 
-	return (asuint(f32tof16(e.y)) << 16) + (asuint(f32tof16(e.x)));
+    float2 p = normal.xy * (1.0 / dot(abs(normal), 1.0.xxx));
+    float2 e = normal.z > 0.0 ? p : (1.0 - abs(p.yx)) * (step(0.0,p)*2.0-(float2)(1.0)); 
+    return (asuint(f32tof16(e.y)) << 16) + (asuint(f32tof16(e.x)));
 }
 
 GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
 {
     ShadingData sd = prepareShadingData(vOut, gMaterial, gCamera.posW);
 
-	// The 'linearZ' buffer
-	float linearZ    = vOut.posH.z * vOut.posH.w;
-	float maxChangeZ = max(abs(ddx(linearZ)), abs(ddy(linearZ)));
-	float objNorm    = asfloat(DirToOct(normalize(vOut.normalW))); // world normal instead of object normal
-	float4 svgfLinearZOut = float4(linearZ, maxChangeZ, vOut.prevPosH.z, objNorm);
+    // The 'linearZ' buffer
+    float linearZ    = vOut.posH.z * vOut.posH.w;
+    float maxChangeZ = max(abs(ddx(linearZ)), abs(ddy(linearZ)));
+    float objNorm    = asfloat(DirToOct(normalize(vOut.normalW))); // world normal instead of object normal
+    float4 svgfLinearZOut = float4(linearZ, maxChangeZ, vOut.prevPosH.z, objNorm);
 
-	// The 'motion vector' buffer
+    // The 'motion vector' buffer
     float2 jitter = float2(gCamera.jitterX, gCamera.jitterY);
 #ifdef FALCOR_D3D
     jitter.y *= -1;
 #endif
-	float2 svgfMotionVec = calcMotionVector(pixelCrd.xy, vOut.prevPosH, gRenderTargetDim) + jitter;
-	float2 posNormFWidth = float2(length(fwidth(sd.posW)), length(fwidth(sd.N))); 
-	float4 svgfMotionVecOut = float4(svgfMotionVec, posNormFWidth);
+    float2 svgfMotionVec = calcMotionVector(pixelCrd.xy, vOut.prevPosH, gRenderTargetDim) + jitter;
+    float2 posNormFWidth = float2(length(fwidth(sd.posW)), length(fwidth(sd.N))); 
+    float4 svgfMotionVecOut = float4(svgfMotionVec, posNormFWidth);
 
     GBuffer out;
     out.position = float4(sd.posW, 1.0);
@@ -51,8 +51,8 @@ GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
     out.motion = svgfMotionVecOut;
     out.linearZ = svgfLinearZOut;
 
-	// A compacted buffer containing discretizied normal, depth, depth derivative
-	out.compactNormDepth = float4(asfloat(DirToOct(sd.N)), linearZ, maxChangeZ, 0.0f);
+    // A compacted buffer containing discretizied normal, depth, depth derivative
+    out.compactNormDepth = float4(asfloat(DirToOct(sd.N)), linearZ, maxChangeZ, 0.0f);
 
     return out;
 }

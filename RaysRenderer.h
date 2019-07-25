@@ -20,7 +20,7 @@ public:
     void onGuiRender(SampleCallbacks* sample, Gui* gui) override;
 
 private:
-    void SetupScene();
+    void SetupScene(const std::string& filename);
     void SetupRendering(uint32_t width, uint32_t height);
     void SetupRaytracing(uint32_t width, uint32_t height);
     void SetupDenoising(uint32_t width, uint32_t height);
