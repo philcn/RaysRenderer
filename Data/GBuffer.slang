@@ -31,9 +31,15 @@ GBuffer main(VertexOut vOut, float4 pixelCrd : SV_POSITION)
 
     // The 'linearZ' buffer
     float linearZ    = vOut.posH.z * vOut.posH.w;
+#ifdef FALCOR_VK
+    float prevZBuf   = vOut.prevPosH.z / vOut.prevPosH.w;
+    float prevLinearZ = prevZBuf / vOut.prevPosH.w;
+#else
+    float prevLinearZ = vOut.prevPosH.z;
+#endif
     float maxChangeZ = max(abs(ddx(linearZ)), abs(ddy(linearZ)));
     float objNorm    = asfloat(DirToOct(normalize(vOut.normalW))); // world normal instead of object normal
-    float4 svgfLinearZOut = float4(linearZ, maxChangeZ, vOut.prevPosH.z, objNorm);
+    float4 svgfLinearZOut = float4(linearZ, maxChangeZ, prevLinearZ, objNorm);
 
     // The 'motion vector' buffer
     float2 jitter = float2(gCamera.jitterX, gCamera.jitterY);
